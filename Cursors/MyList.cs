@@ -11,12 +11,17 @@ public class Position<T> where T : class
         Pos = pos;
     }
     
+
     public override bool Equals(object? obj)
     {
-        if (obj is Position<T> other)
-            return Pos == other.Pos;
-        return false;
+        // Проверка на совпадение типов
+        if (GetType() != obj.GetType()) return false;
+    
+        // Явное приведение
+        Position<T> other = (Position<T>)obj;
+        return Pos == other.Pos;
     }
+    
 }
 
 
