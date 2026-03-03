@@ -1,8 +1,28 @@
 ﻿namespace ASD.Cursors;
 
+//вспомогательный класс позиции (абстракция)
+//объект - позиция со свойствами
+public class Position<T> where T : class
+{
+    public int Pos { get; }
+
+    public Position(int pos)
+    {
+        Pos = pos;
+    }
+    
+    public override bool Equals(object? obj)
+    {
+        if (obj is Position<T> other)
+            return Pos == other.Pos;
+        return false;
+    }
+}
+
+
 //Класс MyList<T> — реализация АТД списка на курсорах.
 //Класс, где мы можем подставить ссылочные типы (подходит для первой лабораторной)
-public class MyList<T> where T : class
+public class MyList<T> where T: class
 {
     // Массив объектов списка и указателей
     private static readonly Node[] Elements;
@@ -12,6 +32,8 @@ public class MyList<T> where T : class
 
     // Указатель на первый пустой индекс в массиве (голова "пустого списка")
     private static int _space = 0;
+
+    private static int _end;
 
     // Максимальный размер списка
     private const int MaxSize = 100;
@@ -38,31 +60,36 @@ public class MyList<T> where T : class
     }
 
     // Возвращает позицию конца списка
-    public Position End()
+    public Position<T> End()
     {
-        return new Position(-1);
+        _end = -1;
+        return new Position<T>(_end);
     }
 
     //возвращает индекс последнего существующего элемента списка
+    //используем 2 переменные если текущий 0 то предыдущий показывает тот что нам нужно
     private int Last()
     {
         //перебором от начала и до конца ищем последнюю заполненную ячейку
+        //при помощи двух указателей 
         int cur = _start;
         int prev = -1;
         while (cur != -1)
         {
             prev = cur;
-            cur = Elements[cur].Next;
+            cur = Elements[cur].Next;   
         }
 
         return prev;
     }
-
+    
     // Возвращает индекс предыдущего элемента относительно данного (ищем предыдущий)
     //нужен для того, чтобы можно было использовать и Insert Delete
 
     //так как это вспомогательный метод, мы работаем только с индексами,
     //а не с позициями, тк позиции - внешняя абстракция 
+    
+    //действуем с ДВУМЯ переменными! проверка текущего, а не следующего
     private int GetPrev(int index)
     {
         //идём от начала списка 
@@ -85,11 +112,11 @@ public class MyList<T> where T : class
     //а в текущий вставляется значение из параметра
 
     //после вставки позиция сохранилась 
-    public void Insert(Position p, T obj)
+    public void Insert(Position<T> p, T obj)
     {
         int tmp;
         //если ппп - вставляем просто в конец
-        if (p.Equals(End()))
+        if (p.Pos == -1)
         {
             // а) список пустой 
             if (_start == -1)
@@ -102,7 +129,6 @@ public class MyList<T> where T : class
             }
 
             // б)список не пустой (вставляем в конец при помощи Last)
-
             Elements[_space].Data = obj;
             tmp = _space;
             _space = Elements[_space].Next;
@@ -113,24 +139,31 @@ public class MyList<T> where T : class
             return;
         }
 
-        //проверка позиции на существование в списке 
-        if (p.Pos >= 0 && (p.Pos == _start || GetPrev(p.Pos) != -1))
+        //проверка на голову
+        if (p.Pos == _start)
         {
+            // 1) Копируем данные из позиции p в свободную ячейку
+            Elements[_space].Data = Elements[p.Pos].Data;
+
+            // 2) Запоминаем новую ячейку и обновляем _space
+            tmp = _space;
+            _space = Elements[_space].Next;
+
+            // 3) Вставляем новую ячейку ПОСЛЕ p
+            Elements[tmp].Next = Elements[p.Pos].Next;
+            Elements[p.Pos].Next = tmp;
+
+            // 4) Заменяем данные в p на obj
+            Elements[p.Pos].Data = obj;
+            return;
+        }
+        
+        //проверка позиции на существование в списке 
+        if (p.Pos >= 0 && GetPrev(p.Pos) != -1)  
+        {   
             throw new Exception("Данная позиция отсутствует в списке");
         }
-
-        // //проверка на голову ее(ВАЖНА)
-        // if (Equals(p.Pos, _start))
-        // {
-        //     // Если мы вставляем в голову - вставляем новый элемент после головы
-        //     Elements[_start].Next;
-        //
-        //     // Значение из головы копируем в этот новый элемент (только что вставленный)
-        //
-        //     // А в значение головы заносим то, что у нас передаётся в качестве параметра 
-        // }
-
-
+        
         // 1) Копируем данные из позиции p в свободную ячейку
         Elements[_space].Data = Elements[p.Pos].Data;
 
@@ -148,13 +181,13 @@ public class MyList<T> where T : class
 
 
     // Находит позицию элемента obj в списке
-    public Position Locate(T obj)
+    public Position<T> Locate(T obj)
     {
         //идём по циклу пока текущий узел не станет -1
         int cur = _start;
         while (cur != -1)
         {
-            if (Elements[cur].Data.Equals(obj)) return new Position(cur);
+            if (Elements[cur].Data.Equals(obj)) return new Position<T>(cur);
             cur = Elements[cur].Next;
         }
 
@@ -163,10 +196,10 @@ public class MyList<T> where T : class
 
 
     // Возвращает элемент списка по позиции
-    public T Retrieve(Position p)
+    public T Retrieve(Position<T> p)
     {
         //проверка на позицию после последней
-        if (p.Equals(End()))
+        if (p.Pos == -1)
         {
             throw new Exception("Данная позиция не существует в списке");
         }
@@ -176,10 +209,10 @@ public class MyList<T> where T : class
     }
 
     // Удаляет элемент из списка по позиции
-    public void Delete(Position p)
+    public void Delete(Position<T> p)
     {
         //проверка на позицию после последнего
-        if (p.Equals(End()))
+        if (p.Pos == -1)
         {
             throw new Exception("Данная позиция отсутствует в списке");
         }
@@ -191,8 +224,7 @@ public class MyList<T> where T : class
 
         int tmp;
 
-
-        //если удаляем голову
+        //если удаляем голову  не нужно отдельно единственный и не единственный (голове всё равно)
         if (p.Pos == _start)
         {
             // проверка на единственный элемент (голова и нет следующего)
@@ -218,18 +250,7 @@ public class MyList<T> where T : class
 
         if (prev == -1)
         {
-            throw new Exception("Нарушена связность списка! У не первого элемента в списке нет предыдущего.");
-        }
-
-        //если удаляем последний (но не единственный) элемент
-        if (Elements[p.Pos].Next == -1)
-        {
-            Elements[prev].Next = -1; // предыдущий становится последним
-
-            // Освобождаем удаляемую ячейку
-            Elements[p.Pos].Next = _space;
-            _space = p.Pos;
-            return;
+            throw new Exception($"Данная позиция отсутствует в списке.");
         }
 
         Elements[prev].Next = Elements[p.Pos].Next;
@@ -240,10 +261,10 @@ public class MyList<T> where T : class
 
 
     //Возвращает позицию следующего элемента
-    public Position Next(Position p)
+    public Position<T> Next(Position<T> p)
     {
         //проверка на позицию после последнего (если позиция не существует в списке кидаем ИСКЛЮЧЕНИЕ)
-        if (p == End())
+        if (p.Pos == -1)
             throw new Exception("Данная позиция не существует в списке");
 
 
@@ -254,21 +275,21 @@ public class MyList<T> where T : class
         }
 
 
-        return new Position(Elements[p.Pos].Next);
+        return new Position<T>(Elements[p.Pos].Next);
 
         //получаем предыдущий - если есть тогда берем после следущую поз
         //иначе возвращаем следующую
     }
 
     // Возвращает позицию предыдущего элемента
-    public Position Previous(Position p)
+    public Position<T> Previous(Position<T> p)
     {
         //проверка на позицию после последнего или первую позицию в списке
-        if (p == End() || p.Pos == _start)
+        if (p.Pos == -1 || p.Pos == _start)
             throw new Exception("Данная позиция не существует в списке");
 
         //иначе возвращаем предыдущую заполненную позицию
-        return new Position(GetPrev(p.Pos));
+        return new Position<T>(GetPrev(p.Pos));
     }
 
     //Очищает список, все элементы возвращаются в свободное пространство
@@ -279,19 +300,14 @@ public class MyList<T> where T : class
         Elements[Last()].Next = _space; // цепляем освободившиеся ячейки к списку пустых
         _space = _start; //обновляем новое начало пустого списка
         _start = -1;
+        
     }
 
 
     // Возвращает позицию первого элемента списка
-    public Position First()
+    public Position<T> First()
     {
-        //если список пустой - возвращает ппп
-        if (_start == -1)
-        {
-            return End();
-        }
-
-        return new Position(_start);
+        return new Position<T>(_start);
     }
 
     // Печатает список в консоль
@@ -317,6 +333,8 @@ public class MyList<T> where T : class
         // Конструктор по умолчанию (нужен для инициализации)
         internal Node()
         {
+            Data = default!;
+            Next = -1;
         }
 
         internal Node(T data, int next)
@@ -327,24 +345,3 @@ public class MyList<T> where T : class
     }
 }
 
-//вспомогательный класс позиции (абстракция)
-//объект - позиция со свойствами
-public class Position(int pos)
-{
-    public int Pos { get; init; } = pos;
-
-    public override bool Equals(object? obj)
-    {
-        if (obj is Position other)
-        {
-            return this.Pos == other.Pos; // Сравниваем по значению индекса
-        }
-
-        return false;
-    }
-
-    public override int GetHashCode()
-    {
-        return Pos.GetHashCode();
-    }
-}

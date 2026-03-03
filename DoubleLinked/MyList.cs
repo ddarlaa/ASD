@@ -1,62 +1,76 @@
-﻿using ASD.DoubleLinked;
+﻿namespace ASD.DoubleLinked;
 
-namespace ASD.DoubleLinked;
+public class Position<T> where T : class
+{
+    // Храним ссылку как object.
+    // internal - чтобы Main не видел это поле, но MyList видел.
+    internal MyList<T>.Node? Node { get; }
+
+    internal Position(MyList<T>.Node? node)
+    {
+        Node = node;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is Position<T> other)
+            return Node == other.Node;
+        return false;
+    }
+}
 
 
 
 //Класс двусвязного списка хранит начало и конец
 // Класс MyList<T> — реализация двусвязного списка.
 // Каждый элемент хранит ссылки на предыдущий и следующий узлы.
-// Работает только с ссылочными типами
+// Работает только c ссылочными типами
 
 public class MyList<T> where T : class
 {
     //Голова списка (первый элемент)
     private Node? _head;
+
     //Хвост списка (последний элемент)
     private Node? _tail;
-    
+
     //Условный "конец списка" (как маркер отсутствия позиции)
     // Возвращает фиктивную позицию конца списка (это будет null)
-    public Position End()
+    public Position<T> End()
     {
-        return new Position(null);;
+        return new Position<T>(null);
     }
 
     //Проверка, существует ли указанная позиция в списке (ищем текущий элемент)
     //никаких других проверок нет
-    private bool CheckPos(Position p)
+    private bool CheckPos(Position<T> p)
     {
-       Node? cur = _head;
-       //перебираем список от начала до конца
-       while (cur != null)
-       {
-           if (Equals(cur, (Node)p.Pos!)) // нашли совпадение
-           {
-               return true;
-           }
-           cur = cur.Next;
-       }
+        Node? cur = _head;
+        //перебираем список от начала до конца
+        while (cur != null)
+        {
+            if (cur == p.Node!) // нашли совпадение
+            {
+                return true;
+            }
 
-       return false; // позиция не найдена
+            cur = cur.Next;
+        }
+
+        return false; // позиция не найдена
     }
-    
-    
-    
+
     //Вставка элемента obj перед позицией p
-    
     //проверка на пустой 
     //позиция в голове нас не интересует
     //случай вставки в голову и в середину объединяем.
-    
+
     //вставка в хвост и в позицию после последнего - разные случаи.
     //если после последнего -- пустой/не пустой список.
-    public void Insert(Position p, T obj)
+    public void Insert(Position<T> p, T obj)
     {
-        Node newNode;
-        
         // Если вставляем в позицию после последнего
-        if (p.Equals(End()))
+        if (p.Node == null)
         {
             //Если список пустой 
             if (_head == null)
@@ -65,84 +79,89 @@ public class MyList<T> where T : class
                 return;
             }
 
-            //Если список не пустой — спокойно добавляем новый узел в конец
+            //Если список не пустой — спокойно добавляем новый узел в конец (после тейла, в этом случае меняется только хвост)
+            Node newNode;
             newNode = new Node(obj);
-                _tail.Next = newNode;
-                newNode.Previous = _tail;
-                _tail = newNode;
-                return;
-            
+            _tail!.Next = newNode;
+            newNode.Previous = _tail;
+            _tail = newNode;
+            return;
         }
 
-        //Если позиция некорректная - кидаем ПРЕДУПРЕЖДЕНИЕ, а не ИСКЛЮЧЕНИЕ
-            if (!CheckPos(p))
-                throw new Exception("Данная позиция не существует в списке");
-            
-        //В других сценариях всё хорошо
-        
+        //Если вставка происходит в конец списка
+        if (p.Node == _tail)
+        {
+            Node cur = p.Node!;
+            Node newNode2 = new Node(cur.Data);
+            newNode2.Next = cur.Next; // будет null
+            newNode2.Previous = cur;
+            cur.Next = newNode2;
+            newNode2.Previous = cur;
+            cur.Data = obj;
+            _tail = _tail!.Next; // теперь _tail указывает на newNode2
+            return;
+        }
+
+        //Если позиция некорректная - кидаем ИСКЛЮЧЕНИЕ
+        if (!CheckPos(p))
+            throw new Exception("Данная позиция не существует в списке");
+
         // Переставляем ссылки для текущего узла, ПОСЛЕ которого вставляем
         // и нового узла, В который переносим данные
 
-        Node cur = (Node)p.Pos!;
+        //вставка в голову и в середину - одно и то же, а вставка в голову - другой случай 
+        Node newNode3; //создаём объект 
 
-        newNode = new Node(cur.Data);
-        
-        newNode.Next = cur.Next;
-        newNode.Next?.Previous = newNode;
-        cur.Next = newNode;
-        newNode.Previous = cur;
-        
+        Node current = p.Node!;
+        newNode3 = new Node(current.Data);
+        newNode3.Next = current.Next;
+        newNode3.Next?.Previous = newNode3;
+        current.Next = newNode3;
+        newNode3.Previous = current;
+
         // В текущий узел записываем новые данные
-        cur.Data = obj;
-        
-        // Если вставляли в хвост, меняем его позицию
-        if (p.Pos == _tail)
-        {
-            _tail = _tail!.Next;
-        }
+        current.Data = obj;
     }
 
     // Поиск первого вхождения элемента obj в списке
-    public Position Locate(T obj)
+    public Position<T> Locate(T obj)
     {
-        
-        Node? cur = _head;
+        Node? current = _head;
 
-        while (cur != null)
+        while (current != null)
         {
-            if (cur.Data.Equals(obj))
+            if (current.Data.Equals(obj))
             {
-                return new Position(cur);
+                return new Position<T>(current);
             }
-            cur = cur.Next;
+
+            current = current.Next;
         }
+
         return End(); // не найден
     }
 
     // Получение данных по позиции
-    public T Retrieve(Position p)
+    public T Retrieve(Position<T> p)
     {
-        
         //найдём позицию
-        if (!CheckPos(p)) 
+        if (!CheckPos(p))
             throw new Exception("Данная позиция не существует в списке");
-        
+
         //вернули значение из конкретного узла
-        Node node = (Node)p.Pos!;
-        return node.Data;
+        return p.Node!.Data;
     }
 
-    
-    
+
     //удаление элемента по позиции
-    public void Delete(Position p)
+    public void Delete(Position<T> p)
     {
         //проверка на позицию после последнего
-        if (p.Equals(End()))
+        if (p.Node == null)
             throw new Exception("Удаление позиции после последнего невозможно");
-        
+
         //проверка на голову 
-        if (Equals(p.Pos!,_head))
+        if (p.Node == _head)
         {
             //проверка на единственность элемента, тогда становится пустой (хвост и голова стали нулями)
             // в этом же случае если список пустой - он остаётся пустым
@@ -151,60 +170,63 @@ public class MyList<T> where T : class
                 _tail = _head = null;
                 return;
             }
-            
+
             //перемещаем голову на следующий элемент
             _head = _head!.Next;
             if (_head != null)
             {
                 _head.Previous = null;
             }
+
             return;
         }
-        
+
         //проверка на хвост, тогда хвост изменяется 
-        if (p.Equals(_tail))
+        if (p.Node == _tail)
         {
             _tail = _tail!.Previous;
             _tail!.Next = null;
             return;
         }
-        
+
         //проверка позиции - самая последняя проверка 
         if (!CheckPos(p))
         {
             throw new Exception("Данная позиция не существует в списке");
         }
-        
+
         //все остальные случаи - р где-то в середине списка
-        Node cur = (Node)p.Pos!;
+        Node cur = p.Node!;
         cur.Previous!.Next = cur.Next;
         cur.Next!.Previous = cur.Previous;
-    
     }
 
     //получение позиции следующего элемента с ИСКЛЮЧЕНИЕМ
-    public Position Next(Position p)
+    public Position<T> Next(Position<T> p)
     {
-        if (!CheckPos(p)) 
+        if (!CheckPos(p))
             throw new Exception("Данная позиция не существует в списке");
-        Node cur = (Node)p.Pos!;
-        return new Position(cur.Next);
+        Node cur = p.Node!;
+        return new Position<T>(cur.Next);
     }
 
     //получение позиции предыдущего элемента с ИСКЛЮЧЕНИЕМ
-    public Position Previous(Position p)
+    public Position<T> Previous(Position<T> p)
     {
-        if (p.Pos == _head || !CheckPos(p)) 
-            throw new Exception("Данная позиция не существует в списке или не имеет предыдущего");
+        if (p.Node == _head)
+            throw new Exception("Данная позиция не имеет предыдущего");
 
-        Node cur = (Node)p.Pos!;
-        return new Position(cur.Previous);
+        if (!CheckPos(p))
+            throw new Exception("Данная позиция не существует в списке");
+
+        Node cur = p.Node!;
+        return new Position<T>(cur.Previous);
     }
 
     // Получение позиции первого элемента списка
-    public Position First()
+    public Position<T> First()
     {
-        return new Position(_head);
+        return new Position<T>(_head);
     }
 
     // Полная очистка списка
@@ -217,14 +239,14 @@ public class MyList<T> where T : class
     public void PrintList()
     {
         Console.Write("[");
-        
+
         Node? cur = _head;
 
         if (cur != null)
         {
             Console.Write(cur.Data); //печатаем первый элемент
             cur = cur.Next;
-            
+
             //печатаем всё остальное через запятую
             while (cur != null)
             {
@@ -237,40 +259,10 @@ public class MyList<T> where T : class
     }
 
     //внутри есть приватный класс узел, где хранится значение и ссылка на следующий узел
-    internal class Node
-        (T data, Node? prev = null, Node? next = null)
+    internal class Node(T data, Node? prev = null, Node? next = null)
     {
-
         internal T Data { get; set; } = data; // Объект внутри ноды
         internal Node? Previous { get; set; } = prev; // ссылка на предыдущую ноду
         internal Node? Next { get; set; } = next; // ссылка на следующую ноду
-    }
-    
-}
-
-public class Position
-{
-    // Храним ссылку как object.
-    // internal - чтобы Main не видел это поле, но MyList видел.
-    internal object? Pos { get; }
-
-    public Position(object? pos)
-    {
-        Pos = pos;
-    }
-
-    // Переопределяем Equals для корректной работы p == End()
-    public override bool Equals(object? obj)
-    {
-        if (obj is Position other)
-        {
-            // Сравниваем физические ссылки на объекты в памяти
-            return ReferenceEquals(this.Pos, other.Pos);
-        }
-        return false;
-    }
-    public override int GetHashCode()
-    {
-        return Pos?.GetHashCode() ?? 0;
     }
 }
