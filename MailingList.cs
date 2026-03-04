@@ -29,54 +29,35 @@ public class MailingList
 
         Address[addressSize] = '\0'; // завершающий нуль
     }
-
-    // переопределить метод для почтовой рассылки
+    
     public override bool Equals(object? obj)
     {
-        MailingList? other = (MailingList)obj!;
+        MailingList? other = (MailingList)obj;
 
-        // Сравнение поля Name
-        int i = 0;
-        while (true)
+        // Сравниваем Name
+        for (int i = 0; i < 20; i++)
         {
-            bool endThisName = (i >= this.Name.Length) || (this.Name[i] == '\0');
-            bool endOtherName = (i >= other.Name.Length) || (other.Name[i] == '\0');
-
-            if (endThisName && endOtherName)
-                break; // Оба завершились – переходим к Address
-            if (endThisName != endOtherName)
-                return false; // Один завершился раньше другого
-            if (this.Name[i] != other.Name[i])
+            if (Name[i] != other.Name[i]) 
                 return false;
-            i++;
+            if (Name[i] == '\0') 
+                break; // Достигли конца строки
         }
 
-        // Сравнение поля Address
-        i = 0;
-        while (true)
+        // Сравниваем Address
+        for (int i = 0; i < 50; i++)
         {
-            bool endThisAddr = (i >= this.Address.Length) || (this.Address[i] == '\0');
-            bool endOtherAddr = (i >= other.Address.Length) || (other.Address[i] == '\0');
-
-            if (endThisAddr && endOtherAddr)
-                return true; // Оба завершились – объекты равны
-            if (endThisAddr != endOtherAddr)
+            if (Address[i] != other.Address[i]) 
                 return false;
-            if (this.Address[i] != other.Address[i])
-                return false;
-            i++;
+            if (Address[i] == '\0') 
+                break; // Достигли конца строки
         }
+        return true;
     }
-
-    protected bool Equals(MailingList other)
-    {
-        return Name.Equals(other.Name) && Address.Equals(other.Address);
-    }
+    
     public override string ToString()
     {
         string nameStr = new string(Name).TrimEnd('\0');
         string addressStr = new string(Address).TrimEnd('\0');
         return $"{nameStr}: {addressStr}";
     }
-    
 }

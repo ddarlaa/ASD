@@ -1,6 +1,6 @@
 ﻿namespace ASD.DoubleLinked;
 
-public class Position<T> where T : class
+public class Position<T> 
 {
     // Храним ссылку как object.
     // internal - чтобы Main не видел это поле, но MyList видел.
@@ -10,7 +10,6 @@ public class Position<T> where T : class
     {
         Node = node;
     }
-
     public override bool Equals(object? obj)
     {
         if (obj is Position<T> other)
@@ -19,21 +18,19 @@ public class Position<T> where T : class
     }
 }
 
-
-
 //Класс двусвязного списка хранит начало и конец
 // Класс MyList<T> — реализация двусвязного списка.
 // Каждый элемент хранит ссылки на предыдущий и следующий узлы.
 // Работает только c ссылочными типами
 
-public class MyList<T> where T : class
+public class MyList<T> 
 {
     //Голова списка (первый элемент)
     private Node? _head;
 
     //Хвост списка (последний элемент)
     private Node? _tail;
-
+    
     //Условный "конец списка" (как маркер отсутствия позиции)
     // Возвращает фиктивную позицию конца списка (это будет null)
     public Position<T> End()
@@ -49,11 +46,10 @@ public class MyList<T> where T : class
         //перебираем список от начала до конца
         while (cur != null)
         {
-            if (cur == p.Node!) // нашли совпадение
+            if (cur == p.Node) // нашли совпадение
             {
                 return true;
             }
-
             cur = cur.Next;
         }
 
@@ -104,7 +100,7 @@ public class MyList<T> where T : class
 
         //Если позиция некорректная - кидаем ИСКЛЮЧЕНИЕ
         if (!CheckPos(p))
-            throw new Exception("Данная позиция не существует в списке");
+            throw new Exception("Данная позиция не существует в списке (Insert)");
 
         // Переставляем ссылки для текущего узла, ПОСЛЕ которого вставляем
         // и нового узла, В который переносим данные
@@ -138,16 +134,19 @@ public class MyList<T> where T : class
             current = current.Next;
         }
 
-        return End(); // не найден
+        return new Position<T>(null); // не найден
     }
 
     // Получение данных по позиции
     public T Retrieve(Position<T> p)
     {
+        if (p.Node == null) 
+            throw new Exception("Данная позиция не существует в списке");
+        
         //найдём позицию
         if (!CheckPos(p))
-            throw new Exception("Данная позиция не существует в списке");
-
+            throw new Exception("Данная позиция не существует в списке (РЕТРИВ)");
+        
         //вернули значение из конкретного узла
         return p.Node!.Data;
     }
@@ -177,7 +176,6 @@ public class MyList<T> where T : class
             {
                 _head.Previous = null;
             }
-
             return;
         }
 
@@ -192,7 +190,7 @@ public class MyList<T> where T : class
         //проверка позиции - самая последняя проверка 
         if (!CheckPos(p))
         {
-            throw new Exception("Данная позиция не существует в списке");
+            throw new Exception("Данная позиция не существует в списке (УДАЛЕНИЕ)");
         }
 
         //все остальные случаи - р где-то в середине списка
@@ -205,8 +203,9 @@ public class MyList<T> where T : class
     public Position<T> Next(Position<T> p)
     {
         if (!CheckPos(p))
-            throw new Exception("Данная позиция не существует в списке");
+            throw new Exception("Данная позиция не существует в списке (НЕКСТ)" );
         Node cur = p.Node!;
+        
         return new Position<T>(cur.Next);
     }
 

@@ -2,7 +2,7 @@
 
 //вспомогательный класс позиции (абстракция)
 //объект - позиция со свойствами
-public class Position<T> where T : class
+public class Position<T> 
 {
     public int Pos { get; }
 
@@ -10,8 +10,7 @@ public class Position<T> where T : class
     {
         Pos = pos;
     }
-    
-
+    //переопределение Equals
     public override bool Equals(object? obj)
     {
         // Проверка на совпадение типов
@@ -21,13 +20,11 @@ public class Position<T> where T : class
         Position<T> other = (Position<T>)obj;
         return Pos == other.Pos;
     }
-    
 }
-
 
 //Класс MyList<T> — реализация АТД списка на курсорах.
 //Класс, где мы можем подставить ссылочные типы (подходит для первой лабораторной)
-public class MyList<T> where T: class
+public class MyList<T> 
 {
     // Массив объектов списка и указателей
     private static readonly Node[] Elements;
@@ -36,12 +33,12 @@ public class MyList<T> where T: class
     private int _start = -1;
 
     // Указатель на первый пустой индекс в массиве (голова "пустого списка")
-    private static int _space = 0;
-
-    private static int _end;
-
+    private static int _space;
+    
+    
     // Максимальный размер списка
     private const int MaxSize = 100;
+
 
     // Статический конструктор — инициализация массивов и списка пустых ячеек
     static MyList()
@@ -56,19 +53,18 @@ public class MyList<T> where T: class
                 Next = i + 1
             };
         }
-
         // Последняя свободная указывает на конец (-1)
         Elements[size] = new Node
         {
             Next = -1
         };
+        _space = 0;
     }
 
     // Возвращает позицию конца списка
     public Position<T> End()
     {
-        _end = -1;
-        return new Position<T>(_end);
+        return new Position<T>(-1);
     }
 
     //возвращает индекс последнего существующего элемента списка
@@ -106,7 +102,6 @@ public class MyList<T> where T: class
             prev = cur;
             cur = Elements[cur].Next;
         }
-
         return -1; //иначе возвращаем -1
     }
 
@@ -144,27 +139,9 @@ public class MyList<T> where T: class
             return;
         }
 
-        //проверка на голову
-        if (p.Pos == _start)
-        {
-            // 1) Копируем данные из позиции p в свободную ячейку
-            Elements[_space].Data = Elements[p.Pos].Data;
-
-            // 2) Запоминаем новую ячейку и обновляем _space
-            tmp = _space;
-            _space = Elements[_space].Next;
-
-            // 3) Вставляем новую ячейку ПОСЛЕ p
-            Elements[tmp].Next = Elements[p.Pos].Next;
-            Elements[p.Pos].Next = tmp;
-
-            // 4) Заменяем данные в p на obj
-            Elements[p.Pos].Data = obj;
-            return;
-        }
-        
+        int prev = GetPrev(p.Pos);
         //проверка позиции на существование в списке 
-        if (p.Pos >= 0 && GetPrev(p.Pos) != -1)  
+        if (!(p.Pos == _start || prev != -1)) 
         {   
             throw new Exception("Данная позиция отсутствует в списке");
         }
@@ -196,7 +173,7 @@ public class MyList<T> where T: class
             cur = Elements[cur].Next;
         }
 
-        return End(); // не найден
+        return new Position<T>(-1); // не найден
     }
 
 
@@ -206,7 +183,7 @@ public class MyList<T> where T: class
         //проверка на позицию после последней
         if (p.Pos == -1)
         {
-            throw new Exception("Данная позиция не существует в списке");
+            throw new Exception("Данная позиция не существует в списке (МЕТОД РЕТРИВ)");
         }
 
         //возвращаем значение узла позиции р
@@ -270,16 +247,9 @@ public class MyList<T> where T: class
     {
         //проверка на позицию после последнего (если позиция не существует в списке кидаем ИСКЛЮЧЕНИЕ)
         if (p.Pos == -1)
-            throw new Exception("Данная позиция не существует в списке");
+            throw new Exception("Данная позиция не существует в списке (МЕТОД НЕКСТ)");
 
-
-        //если р - последняя позиция в списке 
-        if (p.Pos == Last())
-        {
-            return End();
-        }
-
-
+        
         return new Position<T>(Elements[p.Pos].Next);
 
         //получаем предыдущий - если есть тогда берем после следущую поз
@@ -291,10 +261,11 @@ public class MyList<T> where T: class
     {
         //проверка на позицию после последнего или первую позицию в списке
         if (p.Pos == -1 || p.Pos == _start)
-            throw new Exception("Данная позиция не существует в списке");
+            throw new Exception("Данная позиция не существует в списке ");
 
+        int prev = GetPrev(p.Pos);
         //иначе возвращаем предыдущую заполненную позицию
-        return new Position<T>(GetPrev(p.Pos));
+        return new Position<T>(prev);
     }
 
     //Очищает список, все элементы возвращаются в свободное пространство
@@ -320,15 +291,18 @@ public class MyList<T> where T: class
     {
         Console.Write("[");
         int cur = _start;
+        bool first = true;
         while (cur != -1)
         {
-            Console.Write($",\n{Elements[cur].Data}");
+            if (!first)
+                Console.Write(",");
+            Console.Write($"\n{Elements[cur].Data}");
+            first = false;
             cur = Elements[cur].Next;
         }
-
-        Console.WriteLine("]");
+        Console.WriteLine("\n]");
     }
-
+    
     //внутри есть вложенный класс узел, где хранится значение и ссылка на следующий узел
     internal class Node
     {
